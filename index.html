@@ -6,8 +6,6 @@
     <title>FT MATCHES - Live Football & Streaming</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-    <!-- مكتبة HLS للتشغيل المباشر داخل الموقع -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root {
             --bg-dark: #07090e;
@@ -91,21 +89,29 @@
             box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
         }
 
-        .player-wrapper {
-            position: relative; padding-top: 56.25%;
-            background: #000; border-radius: 12px; overflow: hidden;
-            border: 1px solid var(--glass-border);
+        /* مربع الإعلان والعداد */
+        .ad-banner-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px dashed var(--neon-pink);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
         }
 
-        .player-wrapper video {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; border: none;
+        .timer-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--neon-cyan);
+            margin-top: 10px;
         }
 
         .channel-selector {
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
             flex-wrap: wrap;
+            max-height: 250px;
         }
 
         .channel-btn {
@@ -115,9 +121,10 @@
             padding: 10px 18px; border-radius: 8px;
             cursor: pointer; font-weight: bold; white-space: nowrap; transition: 0.3s;
             font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px;
         }
 
-        .channel-btn:hover, .channel-btn.active {
+        .channel-btn:hover {
             background: var(--neon-pink);
             border-color: var(--neon-pink);
             color: #fff;
@@ -184,7 +191,6 @@
         .status.live { color: var(--neon-pink); font-weight: bold; }
 
         .msg-box { text-align: center; padding: 50px 20px; color: var(--text-sub); }
-        .err-box { text-align: center; padding: 40px 20px; color: var(--neon-pink); font-weight: bold; background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.2); border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -205,17 +211,20 @@
         
         <!-- قسم البث المباشر -->
         <div id="live-stream-section" class="stream-container">
-            <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر
-            </h3>
             
-            <div class="player-wrapper">
-                <video id="video-player" controls playsinline poster="https://via.placeholder.com/800x450/07090e/00f2fe?text=FT+MATCHES+LIVE"></video>
+            <!-- مساحة الإعلان والعداد -->
+            <div class="ad-banner-box" id="ad-box">
+                <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 مساحة إعلانية / اختر القناة للتشغيل</h4>
+                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة، سيرجى الانتظار 5 ثوانٍ قبل فتح مشغل VLC تلقائياً.</p>
+                <!-- ضع كود الإعلان الخاص بك هنا -->
+                <div id="timer-status" class="timer-display" style="display: none;"></div>
             </div>
 
-            <div style="margin-top: 20px;">
-                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 اختر القناة للتشغيل المباشر:</p>
-                <div class="channel-selector" id="channels-list"></div>
+            <div style="margin-top: 15px;">
+                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 قنوات السيرفر المتاحة:</p>
+                <div class="channel-selector" id="channels-list">
+                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري قراءة القنوات من الملف...</div>
+                </div>
             </div>
         </div>
 
@@ -244,29 +253,17 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        // بيانات سيرفر الـ IPTV بتاعك
         const SERVER_URL = "http://ugeen.live:8080";
         const USERNAME = "Ugeen_VIPEJJQ1Q";
         const PASSWORD = "LKGkwD";
 
-        // قائمة القنوات المباشرة الشائعة (تقدر تغير الرقم ID حسب السيرفر)
-        const channelsList = [
-            { name: "beIN Sports 1 HD", id: "1" },
-            { name: "beIN Sports 2 HD", id: "2" },
-            { name: "beIN Sports 3 HD", id: "3" },
-            { name: "beIN Sports 4 HD", id: "4" },
-            { name: "beIN Sports News", id: "5" },
-            { name: "SSC SPORT 1 HD", id: "6" },
-            { name: "Abu Dhabi Sports", id: "7" }
-        ];
-
         let currentDate = new Date().toISOString().split('T')[0];
-        let hlsPlayer = null;
+        let isChannelsLoaded = false;
+        let countdownInterval = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
             fetchMatchesForDate(currentDate);
-            buildChannelButtons();
         });
 
         function switchView(view) {
@@ -274,54 +271,79 @@
             const matchesSection = document.getElementById('matches-section');
             const btnMatches = document.getElementById('btn-tab-matches');
             const btnLive = document.getElementById('btn-tab-live');
-            const video = document.getElementById('video-player');
 
             if (view === 'live') {
                 liveSection.style.display = 'block';
                 matchesSection.style.display = 'none';
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
+
+                if (!isChannelsLoaded) {
+                    fetchRealXtreamChannels();
+                    isChannelsLoaded = true;
+                }
             } else {
                 liveSection.style.display = 'none';
                 matchesSection.style.display = 'block';
                 btnMatches.classList.add('active');
                 btnLive.classList.remove('active');
-                if (video) video.pause();
             }
         }
 
-        function buildChannelButtons() {
+        async function fetchRealXtreamChannels() {
             const container = document.getElementById('channels-list');
-            container.innerHTML = "";
+            const apiUrl = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
 
-            channelsList.forEach((ch, index) => {
-                const streamUrl = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${ch.id}.m3u8`;
-                const btn = document.createElement('button');
-                btn.className = 'channel-btn' + (index === 0 ? ' active' : '');
-                btn.innerText = ch.name;
-                btn.onclick = () => loadStream(streamUrl, btn);
-                container.appendChild(btn);
-            });
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("Connection error");
+                const data = await response.json();
+                const channels = JSON.parse(data.contents);
+
+                if (!Array.isArray(channels) || channels.length === 0) throw new Error("Empty list");
+
+                container.innerHTML = "";
+
+                channels.forEach((ch) => {
+                    const chName = ch.name || "قناة بدون اسم";
+                    const streamId = ch.stream_id;
+
+                    const rawStreamUrl = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'channel-btn';
+                    btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${chName}`;
+                    btn.onclick = () => startRedirectCountdown(rawStreamUrl, chName);
+                    container.appendChild(btn);
+                });
+
+            } catch (err) {
+                container.innerHTML = `<div style="color:var(--neon-pink);">⚠️ تعذر جلب قائمة الملف، تأكد من اتصال السيرفر.</div>`;
+            }
         }
 
-        function loadStream(streamUrl, btn) {
-            document.querySelectorAll('#channels-list .channel-btn').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
+        function startRedirectCountdown(streamUrl, channelName) {
+            const timerBox = document.getElementById('timer-status');
+            timerBox.style.display = 'block';
+            
+            if (countdownInterval) clearInterval(countdownInterval);
 
-            const video = document.getElementById('video-player');
+            let timeLeft = 5;
+            timerBox.innerHTML = `⏳ جاري التجهيز لبث (<strong>${channelName}</strong>)... التحويل إلى VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
 
-            if (Hls.isSupported()) {
-                if (hlsPlayer) hlsPlayer.destroy();
-                hlsPlayer = new Hls();
-                hlsPlayer.loadSource(streamUrl);
-                hlsPlayer.attachMedia(video);
-                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Autoplay constraint:", e));
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = streamUrl;
-                video.play().catch(e => console.log("Autoplay constraint:", e));
-            }
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    timerBox.innerHTML = `⏳ جاري التجهيز لبث (<strong>${channelName}</strong>)... التحويل إلى VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+                } else {
+                    clearInterval(countdownInterval);
+                    timerBox.innerHTML = `✅ جاري الفتح في VLC الآن...`;
+                    
+                    // تحويل مباشر لفتح المشغل الخارجي VLC
+                    window.location.href = `vlc://${streamUrl}`;
+                }
+            }, 1000);
         }
 
         function loadToday() {
@@ -363,7 +385,7 @@
 
                 renderMatchGroups(result.response, container);
             } catch (error) {
-                container.innerHTML = `<div class="err-box">⚠️ حدث خطأ أثناء تحميل جدول المباريات.</div>`;
+                container.innerHTML = `<div class="msg-box" style="color:var(--neon-pink);">⚠️ خطأ في تحميل بيانات المباريات.</div>`;
             }
         }
 
