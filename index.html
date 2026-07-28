@@ -61,10 +61,7 @@
             cursor: pointer;
             font-weight: 700;
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.9rem;
+            display: flex; align-items: center; gap: 6px; font-size: 0.9rem;
         }
 
         .nav-btn:hover { color: var(--neon-cyan); border-color: var(--neon-cyan); }
@@ -76,7 +73,6 @@
             box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
         }
 
-        /* زرار البث المباشر المضيء */
         .nav-btn.live-btn.active {
             background: rgba(255, 0, 127, 0.15);
             color: var(--neon-pink);
@@ -92,9 +88,9 @@
 
         .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-        /* قسم البث المباشر (مخفي افتراضياً) */
+        /* قسم البث مخفي في بداية الفتح */
         .stream-container {
-            display: none; /* مخفي أول ما الموقع يفتح */
+            display: none;
             background: var(--card-bg);
             border: 1px solid var(--border-glow);
             border-radius: 16px; padding: 20px; margin-bottom: 30px;
@@ -212,30 +208,33 @@
 
     <div class="container">
         
-        <!-- قسم البث المباشر (يظهر فقط عند الضغط على زرار البث المباشر) -->
+        <!-- قسم البث المباشر (يظهر فقط عند الضغط على زرار البث) -->
         <div id="live-stream-section" class="stream-container">
             <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-circle-play"></i> قنوات beIN Sports والرياضة المباشرة
+                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر (Ugeen IPTV)
             </h3>
             
             <div class="player-wrapper">
                 <video id="video-player" controls playsinline></video>
             </div>
 
+            <!-- أزرار القنوات المباشرة من سيرفرك المباشر بدون حظر -->
             <div class="channel-selector" id="channels-list">
-                <div style="color: var(--neon-cyan); font-size: 0.9rem;">⚡ اضغط على القناة للتشغيل...</div>
+                <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1 HD</button>
+                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2 HD</button>
+                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3 HD</button>
+                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/4.m3u8', this)">beIN Sports 4 HD</button>
+                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/5.m3u8', this)">SSC SPORT 1 HD</button>
             </div>
         </div>
 
-        <!-- قسم المباريات الأساسي -->
+        <!-- قسم جدول المباريات الرئيسي -->
         <div id="matches-section">
-            <!-- البحث -->
             <div class="search-box">
                 <input type="text" id="team-search" placeholder="ابحث عن فريق (مثل: ريال مدريد، الأهلي)..." onkeyup="handleSearch(event)">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 
-            <!-- شريط التواريخ -->
             <div class="date-bar">
                 <button class="date-btn" onclick="changeDate(-1)">⬅️ الأمس</button>
                 <button class="date-btn active" id="btn-today" onclick="loadToday()">🎮 اليوم</button>
@@ -246,7 +245,6 @@
                 </div>
             </div>
 
-            <!-- جدول المباريات -->
             <div id="main-content"></div>
         </div>
 
@@ -254,20 +252,16 @@
 
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
-        const M3U_PLAYLIST_URL = "http://ugeen.live:8080/get.php?username=Ugeen_VIPEJJQ1Q&password=LKGkwD&type=m3u_plus&output=m3u8";
-
         let currentLang = "ar";
         let currentDate = new Date().toISOString().split('T')[0];
         let hlsPlayer = null;
-        let isChannelsLoaded = false;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
-            // جلب المباريات فقط عند بداية فتح الموقع
+            // جلب جدول المباريات أول ما الصفحة تفتح
             fetchMatchesForDate(currentDate);
         });
 
-        // دالة التنقل بين جدول المباريات والبث المباشر
         function switchView(view) {
             const liveSection = document.getElementById('live-stream-section');
             const matchesSection = document.getElementById('matches-section');
@@ -281,10 +275,10 @@
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
 
-                // جلب القنوات أول مرة فقط عند فتح التبويب
-                if (!isChannelsLoaded) {
-                    loadAndFilterSportsChannels();
-                    isChannelsLoaded = true;
+                // تشغيل القناة الأولى عند فتح صفحة البث مباشرة
+                const firstBtn = document.querySelector('.channel-btn');
+                if (firstBtn && !video.src) {
+                    firstBtn.click();
                 }
             } else {
                 liveSection.style.display = 'none';
@@ -292,54 +286,8 @@
                 btnMatches.classList.add('active');
                 btnLive.classList.remove('active');
 
-                // إيقاف الفيديو مؤقتاً عند الخروج من صفحة البث
+                // إيقاف البث مؤقتاً عند الرجوع لجدول المباريات
                 if (video) video.pause();
-            }
-        }
-
-        async function loadAndFilterSportsChannels() {
-            const container = document.getElementById('channels-list');
-            try {
-                const response = await fetch(M3U_PLAYLIST_URL);
-                if (!response.ok) throw new Error("CORS or Connection Error");
-                const textData = await response.text();
-
-                const lines = textData.split('\n');
-                const sportsChannels = [];
-
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].startsWith('#EXTINF:')) {
-                        const infoLine = lines[i];
-                        const streamUrl = lines[i + 1] ? lines[i + 1].trim() : '';
-                        const channelName = infoLine.split(',')[1] || "قناة رياضية";
-
-                        if (/bein|sport/i.test(channelName) && streamUrl.startsWith('http')) {
-                            sportsChannels.push({ name: channelName.trim(), url: streamUrl });
-                        }
-                    }
-                }
-
-                if (sportsChannels.length === 0) throw new Error("No channels found");
-
-                container.innerHTML = "";
-                sportsChannels.forEach((ch, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = `channel-btn ${index === 0 ? 'active' : ''}`;
-                    btn.innerText = ch.name;
-                    btn.onclick = () => loadStream(ch.url, btn);
-                    container.appendChild(btn);
-                });
-
-                if (sportsChannels.length > 0) loadStream(sportsChannels[0].url, container.children[0]);
-
-            } catch (error) {
-                // قنوات احتياطية بسيطة في حالة وجود CORS على GitHub Pages
-                container.innerHTML = `
-                    <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1</button>
-                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2</button>
-                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3</button>
-                `;
-                loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', container.children[0]);
             }
         }
 
@@ -355,11 +303,11 @@
                 hlsPlayer.loadSource(streamUrl);
                 hlsPlayer.attachMedia(video);
                 hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Play interrupted:", e));
+                    video.play().catch(e => console.log("Play check:", e));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = streamUrl;
-                video.play().catch(e => console.log("Play interrupted:", e));
+                video.play().catch(e => console.log("Play check:", e));
             }
         }
 
