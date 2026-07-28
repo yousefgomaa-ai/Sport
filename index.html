@@ -110,6 +110,8 @@
         .channel-selector {
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
+            max-height: 200px;
+            flex-wrap: wrap;
         }
 
         .channel-btn {
@@ -118,8 +120,7 @@
             color: var(--text-main);
             padding: 8px 16px; border-radius: 8px;
             cursor: pointer; font-weight: bold; white-space: nowrap; transition: 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            font-size: 0.85rem;
         }
 
         .channel-btn:hover, .channel-btn.active {
@@ -127,12 +128,6 @@
             border-color: var(--neon-pink);
             color: #fff;
             box-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
-        }
-
-        .ext-btn {
-            background: rgba(0, 242, 254, 0.1);
-            border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan);
         }
 
         .search-box { position: relative; margin-bottom: 25px; }
@@ -196,16 +191,6 @@
 
         .msg-box { text-align: center; padding: 50px 20px; color: var(--text-sub); }
         .err-box { text-align: center; padding: 40px 20px; color: var(--neon-pink); font-weight: bold; background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.2); border-radius: 12px; }
-        
-        .alert-info {
-            background: rgba(0, 242, 254, 0.08);
-            border: 1px solid var(--neon-cyan);
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 0.85rem;
-            color: #d1f7ff;
-        }
     </style>
 </head>
 <body>
@@ -227,39 +212,24 @@
         
         <!-- قسم البث المباشر -->
         <div id="live-stream-section" class="stream-container">
-            <h3 style="margin-bottom: 10px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
+            <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر
             </h3>
-
-            <div class="alert-info">
-                💡 **ملاحظة:** إذا لم يعمل المشغل الداخلي بسبب حظر الأمان في متصفح الموبايل، اضغط على زر **"فتح خارجي"** لفتح القناة مباشرة على تطبيق الهاتف أو مشغل الفيديو.
-            </div>
             
             <div class="player-wrapper">
                 <video id="video-player" controls playsinline></video>
             </div>
 
-            <!-- أزرار المشغل الداخلي والخارجي -->
+            <!-- مكان القنوات اللي هتيجي بالأسماء والـ Stream ID الحقيقي -->
             <div style="margin-top: 15px;">
-                <p style="font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 8px;">📺 المشغل الداخلي:</p>
+                <p style="font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 8px;">📺 القنوات المتاحة من السيرفر:</p>
                 <div class="channel-selector" id="channels-list">
-                    <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1</button>
-                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2</button>
-                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3</button>
-                </div>
-            </div>
-
-            <div style="margin-top: 15px;">
-                <p style="font-size: 0.9rem; color: var(--neon-pink); margin-bottom: 8px;">🚀 فتح مباشر/تطبيقات خارجية (مضمون 100%):</p>
-                <div class="channel-selector">
-                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8" target="_blank">🔗 فتح beIN 1 مباشرة</a>
-                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8" target="_blank">🔗 فتح beIN 2 مباشرة</a>
-                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8" target="_blank">🔗 فتح beIN 3 مباشرة</a>
+                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري قراءة القنوات والأسماء من السيرفر...</div>
                 </div>
             </div>
         </div>
 
-        <!-- قسم جدول المباريات الرئيسي -->
+        <!-- قسم المباريات الرئيسي -->
         <div id="matches-section">
             <div class="search-box">
                 <input type="text" id="team-search" placeholder="ابحث عن فريق (مثل: ريال مدريد، الأهلي)..." onkeyup="handleSearch(event)">
@@ -283,9 +253,16 @@
 
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
+        
+        // بيانات Xtream الخاصة بك
+        const SERVER_URL = "http://ugeen.live:8080";
+        const USERNAME = "Ugeen_VIPEJJQ1Q";
+        const PASSWORD = "LKGkwD";
+
         let currentLang = "ar";
         let currentDate = new Date().toISOString().split('T')[0];
         let hlsPlayer = null;
+        let isChannelsLoaded = false;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
@@ -305,9 +282,10 @@
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
 
-                const firstBtn = document.querySelector('.channel-btn');
-                if (firstBtn && !video.src) {
-                    firstBtn.click();
+                // جلب قنوات السيرفر بالأسماء الحقيقية أول ما يدوس على البث المباشر
+                if (!isChannelsLoaded) {
+                    fetchRealXtreamChannels();
+                    isChannelsLoaded = true;
                 }
             } else {
                 liveSection.style.display = 'none';
@@ -319,6 +297,55 @@
             }
         }
 
+        // دالة جلب القنوات والأسماء الحقيقية عبر الـ Xtream API
+        async function fetchRealXtreamChannels() {
+            const container = document.getElementById('channels-list');
+            const apiUrl = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("CORS or Connection issue");
+                const data = await response.json();
+                const channels = JSON.parse(data.contents);
+
+                if (!Array.isArray(channels) || channels.length === 0) {
+                    throw new Error("No streams returned");
+                }
+
+                container.innerHTML = "";
+
+                // عرض أول 30 قناة رياضية لسرعة التحميل
+                let count = 0;
+                channels.forEach((ch) => {
+                    const chName = ch.name || "قناة بدون اسم";
+                    const streamId = ch.stream_id;
+
+                    // تصفية القنوات لتركيز القنوات الرياضية و beIN
+                    if (/bein|sport|ssc|alkass/i.test(chName) && count < 30) {
+                        const streamUrl = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
+                        
+                        const btn = document.createElement('button');
+                        btn.className = 'channel-btn';
+                        btn.innerText = chName;
+                        btn.onclick = () => loadStream(streamUrl, btn);
+                        container.appendChild(btn);
+                        count++;
+                    }
+                });
+
+                if (container.children.length > 0) {
+                    container.children[0].click(); // تشغيل القناة الأولى تلقائياً
+                } else {
+                    container.innerHTML = `<div style="color:var(--neon-pink);">لم يتم العثور على قنوات رياضية.</div>`;
+                }
+
+            } catch (err) {
+                console.error("Error fetching Xtream channels:", err);
+                container.innerHTML = `<div style="color:var(--neon-pink);">⚠️ تعذر جلب قائمة القنوات تلقائياً. تأكد من بيانات السيرفر.</div>`;
+            }
+        }
+
         function loadStream(streamUrl, btn) {
             document.querySelectorAll('#channels-list .channel-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
@@ -327,18 +354,15 @@
 
             if (Hls.isSupported()) {
                 if (hlsPlayer) hlsPlayer.destroy();
-                hlsPlayer = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: true,
-                });
+                hlsPlayer = new Hls();
                 hlsPlayer.loadSource(streamUrl);
                 hlsPlayer.attachMedia(video);
                 hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Autoplay failed:", e));
+                    video.play().catch(e => console.log("Autoplay check:", e));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = streamUrl;
-                video.play().catch(e => console.log("Autoplay failed:", e));
+                video.play().catch(e => console.log("Autoplay check:", e));
             }
         }
 
