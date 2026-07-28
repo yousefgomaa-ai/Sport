@@ -105,6 +105,19 @@
             margin-top: 10px;
         }
 
+        .vlc-open-btn {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: var(--neon-pink);
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 0 12px rgba(255, 0, 127, 0.5);
+            transition: 0.3s;
+        }
+
         .channel-selector {
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
@@ -248,12 +261,10 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        // بيانات السيرفر الخاصة بك
         const SERVER_HOST = "http://ugeen.live:8080";
         const USERNAME = "Ugeen_VIPEJJQ1Q";
         const PASSWORD = "LKGkwD";
 
-        // قائمة القنوات المباشرة السريعة (يمكنك إضافة أو تعديل أرقام stream_id)
         const CHANNELS = [
             { name: "beIN SPORTS 1 HD", stream_id: "1" },
             { name: "beIN SPORTS 2 HD", stream_id: "2" },
@@ -262,15 +273,9 @@
             { name: "beIN SPORTS 5 HD", stream_id: "5" },
             { name: "beIN SPORTS 6 HD", stream_id: "6" },
             { name: "beIN SPORTS 7 HD", stream_id: "7" },
-            { name: "beIN SPORTS 8 HD", stream_id: "8" },
-            { name: "beIN SPORTS 9 HD", stream_id: "9" },
             { name: "beIN SPORTS Premium 1", stream_id: "10" },
-            { name: "beIN SPORTS Premium 2", stream_id: "11" },
             { name: "SSC SPORT 1 HD", stream_id: "12" },
-            { name: "SSC SPORT 2 HD", stream_id: "13" },
-            { name: "Abu Dhabi Sports 1", stream_id: "14" },
-            { name: "ON Time Sports 1 HD", stream_id: "15" },
-            { name: "ON Time Sports 2 HD", stream_id: "16" }
+            { name: "ON Time Sports 1 HD", stream_id: "15" }
         ];
 
         let currentDate = new Date().toISOString().split('T')[0];
@@ -306,7 +311,6 @@
             container.innerHTML = "";
 
             CHANNELS.forEach((ch) => {
-                // رابط القناة المباشر
                 const streamUrl = `${SERVER_HOST}/live/${USERNAME}/${PASSWORD}/${ch.stream_id}.m3u8`;
 
                 const btn = document.createElement('button');
@@ -324,6 +328,12 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             let timeLeft = 5;
+            
+            // تحضير رابط Android Intent المباشر لـ VLC
+            const rawHttpUrl = streamUrl.replace('http://', '');
+            const vlcIntentUrl = `intent://${rawHttpUrl}#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end`;
+            const vlcDirectUrl = `vlc://${streamUrl}`;
+
             timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
 
             countdownInterval = setInterval(() => {
@@ -332,10 +342,14 @@
                     timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
                 } else {
                     clearInterval(countdownInterval);
-                    timerBox.innerHTML = `✅ جاري تحويل القناة إلى VLC...`;
                     
-                    // تحويل مباشر لفتح VLC
-                    window.location.href = `vlc://${streamUrl}`;
+                    timerBox.innerHTML = `
+                        ✅ جاري الفتح في VLC تلقائياً...<br>
+                        <a href="${vlcIntentUrl}" class="vlc-open-btn"> اضغط هنا لفتح القناة في VLC فوراً 🚀</a>
+                    `;
+                    
+                    // محاولة الفتح التلقائي عبر Intent أو VLC scheme
+                    window.location.href = vlcIntentUrl;
                 }
             }, 1000);
         }
