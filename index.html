@@ -88,7 +88,6 @@
 
         .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-        /* قسم البث مخفي في بداية الفتح */
         .stream-container {
             display: none;
             background: var(--card-bg);
@@ -119,6 +118,8 @@
             color: var(--text-main);
             padding: 8px 16px; border-radius: 8px;
             cursor: pointer; font-weight: bold; white-space: nowrap; transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .channel-btn:hover, .channel-btn.active {
@@ -126,6 +127,12 @@
             border-color: var(--neon-pink);
             color: #fff;
             box-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+        }
+
+        .ext-btn {
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
         }
 
         .search-box { position: relative; margin-bottom: 25px; }
@@ -189,6 +196,16 @@
 
         .msg-box { text-align: center; padding: 50px 20px; color: var(--text-sub); }
         .err-box { text-align: center; padding: 40px 20px; color: var(--neon-pink); font-weight: bold; background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.2); border-radius: 12px; }
+        
+        .alert-info {
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid var(--neon-cyan);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            color: #d1f7ff;
+        }
     </style>
 </head>
 <body>
@@ -208,23 +225,37 @@
 
     <div class="container">
         
-        <!-- قسم البث المباشر (يظهر فقط عند الضغط على زرار البث) -->
+        <!-- قسم البث المباشر -->
         <div id="live-stream-section" class="stream-container">
-            <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر (Ugeen IPTV)
+            <h3 style="margin-bottom: 10px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر
             </h3>
+
+            <div class="alert-info">
+                💡 **ملاحظة:** إذا لم يعمل المشغل الداخلي بسبب حظر الأمان في متصفح الموبايل، اضغط على زر **"فتح خارجي"** لفتح القناة مباشرة على تطبيق الهاتف أو مشغل الفيديو.
+            </div>
             
             <div class="player-wrapper">
                 <video id="video-player" controls playsinline></video>
             </div>
 
-            <!-- أزرار القنوات المباشرة من سيرفرك المباشر بدون حظر -->
-            <div class="channel-selector" id="channels-list">
-                <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1 HD</button>
-                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2 HD</button>
-                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3 HD</button>
-                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/4.m3u8', this)">beIN Sports 4 HD</button>
-                <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/5.m3u8', this)">SSC SPORT 1 HD</button>
+            <!-- أزرار المشغل الداخلي والخارجي -->
+            <div style="margin-top: 15px;">
+                <p style="font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 8px;">📺 المشغل الداخلي:</p>
+                <div class="channel-selector" id="channels-list">
+                    <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1</button>
+                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2</button>
+                    <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <p style="font-size: 0.9rem; color: var(--neon-pink); margin-bottom: 8px;">🚀 فتح مباشر/تطبيقات خارجية (مضمون 100%):</p>
+                <div class="channel-selector">
+                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8" target="_blank">🔗 فتح beIN 1 مباشرة</a>
+                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8" target="_blank">🔗 فتح beIN 2 مباشرة</a>
+                    <a class="channel-btn ext-btn" href="http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8" target="_blank">🔗 فتح beIN 3 مباشرة</a>
+                </div>
             </div>
         </div>
 
@@ -258,7 +289,6 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
-            // جلب جدول المباريات أول ما الصفحة تفتح
             fetchMatchesForDate(currentDate);
         });
 
@@ -275,7 +305,6 @@
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
 
-                // تشغيل القناة الأولى عند فتح صفحة البث مباشرة
                 const firstBtn = document.querySelector('.channel-btn');
                 if (firstBtn && !video.src) {
                     firstBtn.click();
@@ -286,28 +315,30 @@
                 btnMatches.classList.add('active');
                 btnLive.classList.remove('active');
 
-                // إيقاف البث مؤقتاً عند الرجوع لجدول المباريات
                 if (video) video.pause();
             }
         }
 
         function loadStream(streamUrl, btn) {
-            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#channels-list .channel-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
 
             const video = document.getElementById('video-player');
 
             if (Hls.isSupported()) {
                 if (hlsPlayer) hlsPlayer.destroy();
-                hlsPlayer = new Hls();
+                hlsPlayer = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                });
                 hlsPlayer.loadSource(streamUrl);
                 hlsPlayer.attachMedia(video);
                 hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Play check:", e));
+                    video.play().catch(e => console.log("Autoplay failed:", e));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = streamUrl;
-                video.play().catch(e => console.log("Play check:", e));
+                video.play().catch(e => console.log("Autoplay failed:", e));
             }
         }
 
