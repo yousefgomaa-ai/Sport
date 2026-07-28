@@ -108,7 +108,7 @@
         .vlc-open-btn {
             display: inline-block;
             margin-top: 12px;
-            padding: 10px 20px;
+            padding: 12px 24px;
             background: var(--neon-pink);
             color: #fff;
             text-decoration: none;
@@ -116,6 +116,8 @@
             border-radius: 8px;
             box-shadow: 0 0 12px rgba(255, 0, 127, 0.5);
             transition: 0.3s;
+            cursor: pointer;
+            border: none;
         }
 
         .channel-selector {
@@ -226,7 +228,7 @@
             
             <div class="ad-banner-box" id="ad-box">
                 <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 اختر القناة لبدء التشغيل</h4>
-                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح مشغل VLC تلقائياً.</p>
+                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح المشغل فوراً.</p>
                 <div id="timer-status" class="timer-display" style="display: none;"></div>
             </div>
 
@@ -328,30 +330,38 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             let timeLeft = 5;
-            
-            // تحضير رابط Android Intent المباشر لـ VLC
-            const rawHttpUrl = streamUrl.replace('http://', '');
-            const vlcIntentUrl = `intent://${rawHttpUrl}#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end`;
-            const vlcDirectUrl = `vlc://${streamUrl}`;
-
-            timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+            timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح المشغل خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
 
             countdownInterval = setInterval(() => {
                 timeLeft--;
                 if (timeLeft > 0) {
-                    timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+                    timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح المشغل خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
                 } else {
                     clearInterval(countdownInterval);
                     
                     timerBox.innerHTML = `
-                        ✅ جاري الفتح في VLC تلقائياً...<br>
-                        <a href="${vlcIntentUrl}" class="vlc-open-btn"> اضغط هنا لفتح القناة في VLC فوراً 🚀</a>
+                        ✅ جاهز للتشغيل!<br>
+                        <button onclick="playStreamDirectly('${streamUrl}', '${channelName}')" class="vlc-open-btn"> اضغط هنا لفتح القناة في VLC 🚀</button>
                     `;
                     
-                    // محاولة الفتح التلقائي عبر Intent أو VLC scheme
-                    window.location.href = vlcIntentUrl;
+                    // تشغيل تلقائي لإنشاء ملف البث المؤقت والفتح
+                    playStreamDirectly(streamUrl, channelName);
                 }
             }, 1000);
+        }
+
+        // حركة الصاروخ: إنشاء ملف M3U طائر في الميموري وفتحه فوراً مع VLC
+        function playStreamDirectly(streamUrl, channelName) {
+            const m3uContent = `#EXTM3U\n#EXTINF:-1,${channelName}\n${streamUrl}`;
+            const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `${channelName.replace(/\s+/g, '_')}.m3u`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function loadToday() {
