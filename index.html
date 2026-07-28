@@ -89,15 +89,13 @@
             box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
         }
 
-        /* مربع الإعلان والعداد */
         .ad-banner-box {
             background: rgba(0, 0, 0, 0.6);
             border: 2px dashed var(--neon-pink);
             border-radius: 12px;
-            padding: 25px;
+            padding: 20px;
             text-align: center;
             margin-bottom: 20px;
-            position: relative;
         }
 
         .timer-display {
@@ -111,7 +109,8 @@
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
             flex-wrap: wrap;
-            max-height: 250px;
+            max-height: 380px;
+            overflow-y: auto;
         }
 
         .channel-btn {
@@ -212,18 +211,16 @@
         <!-- قسم البث المباشر -->
         <div id="live-stream-section" class="stream-container">
             
-            <!-- مساحة الإعلان والعداد -->
             <div class="ad-banner-box" id="ad-box">
-                <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 مساحة إعلانية / اختر القناة للتشغيل</h4>
-                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة، سيرجى الانتظار 5 ثوانٍ قبل فتح مشغل VLC تلقائياً.</p>
-                <!-- ضع كود الإعلان الخاص بك هنا -->
+                <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 اختر القناة لبدء التشغيل</h4>
+                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح مشغل VLC تلقائياً.</p>
                 <div id="timer-status" class="timer-display" style="display: none;"></div>
             </div>
 
-            <div style="margin-top: 15px;">
-                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 قنوات السيرفر المتاحة:</p>
+            <div>
+                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة في السيرفر:</p>
                 <div class="channel-selector" id="channels-list">
-                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري قراءة القنوات من الملف...</div>
+                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري الاتصال بالسيرفر وجلب القنوات...</div>
                 </div>
             </div>
         </div>
@@ -253,7 +250,8 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        const SERVER_URL = "http://ugeen.live:8080";
+        // بيانات السيرفر
+        const SERVER_HOST = "http://ugeen.live:8080";
         const USERNAME = "Ugeen_VIPEJJQ1Q";
         const PASSWORD = "LKGkwD";
 
@@ -279,7 +277,7 @@
                 btnMatches.classList.remove('active');
 
                 if (!isChannelsLoaded) {
-                    fetchRealXtreamChannels();
+                    fetchLiveStreams();
                     isChannelsLoaded = true;
                 }
             } else {
@@ -290,18 +288,22 @@
             }
         }
 
-        async function fetchRealXtreamChannels() {
+        async function fetchLiveStreams() {
             const container = document.getElementById('channels-list');
-            const apiUrl = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+            
+            // استخدام بروكسي جدار أمان للتغلب على مشكلة HTTP على HTTPS
+            const targetApi = `${SERVER_HOST}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
+            const corsProxy = `https://corsproxy.io/?${encodeURIComponent(targetApi)}`;
 
             try {
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error("Connection error");
-                const data = await response.json();
-                const channels = JSON.parse(data.contents);
+                const response = await fetch(corsProxy);
+                if (!response.ok) throw new Error("فشل الاتصال");
 
-                if (!Array.isArray(channels) || channels.length === 0) throw new Error("Empty list");
+                const channels = await response.json();
+
+                if (!Array.isArray(channels) || channels.length === 0) {
+                    throw new Error("القائمة فارغة");
+                }
 
                 container.innerHTML = "";
 
@@ -309,17 +311,22 @@
                     const chName = ch.name || "قناة بدون اسم";
                     const streamId = ch.stream_id;
 
-                    const rawStreamUrl = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
-                    
+                    // رابط البث الخاص بالقناة
+                    const streamUrl = `${SERVER_HOST}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
+
                     const btn = document.createElement('button');
                     btn.className = 'channel-btn';
                     btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${chName}`;
-                    btn.onclick = () => startRedirectCountdown(rawStreamUrl, chName);
+                    btn.onclick = () => startRedirectCountdown(streamUrl, chName);
                     container.appendChild(btn);
                 });
 
             } catch (err) {
-                container.innerHTML = `<div style="color:var(--neon-pink);">⚠️ تعذر جلب قائمة الملف، تأكد من اتصال السيرفر.</div>`;
+                container.innerHTML = `
+                    <div style="color:var(--neon-pink); font-size:0.9rem;">
+                        ⚠️ تعذر التحميل المباشر الآلي. <br>
+                        <button onclick="fetchLiveStreams()" style="margin-top:10px; padding:6px 12px; background:var(--neon-pink); border:none; color:#fff; border-radius:6px; cursor:pointer;">إعادة المحاولة 🔄</button>
+                    </div>`;
             }
         }
 
@@ -330,17 +337,17 @@
             if (countdownInterval) clearInterval(countdownInterval);
 
             let timeLeft = 5;
-            timerBox.innerHTML = `⏳ جاري التجهيز لبث (<strong>${channelName}</strong>)... التحويل إلى VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+            timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
 
             countdownInterval = setInterval(() => {
                 timeLeft--;
                 if (timeLeft > 0) {
-                    timerBox.innerHTML = `⏳ جاري التجهيز لبث (<strong>${channelName}</strong>)... التحويل إلى VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+                    timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح VLC خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
                 } else {
                     clearInterval(countdownInterval);
-                    timerBox.innerHTML = `✅ جاري الفتح في VLC الآن...`;
+                    timerBox.innerHTML = `✅ جاري تحويل القناة إلى VLC...`;
                     
-                    // تحويل مباشر لفتح المشغل الخارجي VLC
+                    // تحويل إلى VLC عبر بروتوكول vlc://
                     window.location.href = `vlc://${streamUrl}`;
                 }
             }, 1000);
