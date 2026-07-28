@@ -6,7 +6,8 @@
     <title>FT MATCHES - Live Football & Streaming</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- استخدام مكتبة Clappr الشهيرة للبث المباشر داخل الموقع ودعم الإعلانات -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
     <style>
         :root {
             --bg-dark: #07090e;
@@ -80,12 +81,6 @@
             box-shadow: 0 0 12px rgba(255, 0, 127, 0.4);
         }
 
-        .lang-btn {
-            background: transparent; border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan); padding: 6px 12px;
-            border-radius: 8px; cursor: pointer; font-weight: bold;
-        }
-
         .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
         .stream-container {
@@ -96,22 +91,22 @@
             box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
         }
 
+        /* حاوية مشغل الفيديو داخل الموقع */
         .player-wrapper {
             position: relative; padding-top: 56.25%;
             background: #000; border-radius: 12px; overflow: hidden;
             border: 1px solid var(--glass-border);
         }
 
-        .player-wrapper video {
+        #player-element {
             position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; border: none;
+            width: 100%; height: 100%;
         }
 
         .channel-selector {
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
-            max-height: 200px;
-            flex-wrap: wrap;
+            max-height: 200px; flex-wrap: wrap;
         }
 
         .channel-btn {
@@ -204,32 +199,31 @@
             <button class="nav-btn live-btn" id="btn-tab-live" onclick="switchView('live')">
                 <i class="fa-solid fa-tv"></i> البث المباشر
             </button>
-            <button class="lang-btn" id="lang-toggle" onclick="toggleLanguage()">العربية</button>
         </div>
     </header>
 
     <div class="container">
         
-        <!-- قسم البث المباشر -->
+        <!-- قسم البث المباشر داخل الموقع -->
         <div id="live-stream-section" class="stream-container">
             <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر
+                <i class="fa-solid fa-circle-play"></i> قنوات البث المباشر (إعلانات موقعك تعمل هنا)
             </h3>
             
+            <!-- مكان المشغل المدمج -->
             <div class="player-wrapper">
-                <video id="video-player" controls playsinline></video>
+                <div id="player-element"></div>
             </div>
 
-            <!-- مكان القنوات اللي هتيجي بالأسماء والـ Stream ID الحقيقي -->
             <div style="margin-top: 15px;">
-                <p style="font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 8px;">📺 القنوات المتاحة من السيرفر:</p>
+                <p style="font-size: 0.9rem; color: var(--neon-cyan); margin-bottom: 8px;">📺 اختر القناة:</p>
                 <div class="channel-selector" id="channels-list">
-                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري قراءة القنوات والأسماء من السيرفر...</div>
+                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري جلب القنوات والأسماء الحقيقية...</div>
                 </div>
             </div>
         </div>
 
-        <!-- قسم المباريات الرئيسي -->
+        <!-- قسم المباريات -->
         <div id="matches-section">
             <div class="search-box">
                 <input type="text" id="team-search" placeholder="ابحث عن فريق (مثل: ريال مدريد، الأهلي)..." onkeyup="handleSearch(event)">
@@ -254,14 +248,12 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        // بيانات Xtream الخاصة بك
         const SERVER_URL = "http://ugeen.live:8080";
         const USERNAME = "Ugeen_VIPEJJQ1Q";
         const PASSWORD = "LKGkwD";
 
-        let currentLang = "ar";
         let currentDate = new Date().toISOString().split('T')[0];
-        let hlsPlayer = null;
+        let playerInstance = null;
         let isChannelsLoaded = false;
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -274,7 +266,6 @@
             const matchesSection = document.getElementById('matches-section');
             const btnMatches = document.getElementById('btn-tab-matches');
             const btnLive = document.getElementById('btn-tab-live');
-            const video = document.getElementById('video-player');
 
             if (view === 'live') {
                 liveSection.style.display = 'block';
@@ -282,7 +273,6 @@
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
 
-                // جلب قنوات السيرفر بالأسماء الحقيقية أول ما يدوس على البث المباشر
                 if (!isChannelsLoaded) {
                     fetchRealXtreamChannels();
                     isChannelsLoaded = true;
@@ -293,11 +283,13 @@
                 btnMatches.classList.add('active');
                 btnLive.classList.remove('active');
 
-                if (video) video.pause();
+                if (playerInstance) {
+                    playerInstance.destroy();
+                    playerInstance = null;
+                }
             }
         }
 
-        // دالة جلب القنوات والأسماء الحقيقية عبر الـ Xtream API
         async function fetchRealXtreamChannels() {
             const container = document.getElementById('channels-list');
             const apiUrl = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
@@ -305,72 +297,61 @@
 
             try {
                 const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error("CORS or Connection issue");
+                if (!response.ok) throw new Error("Connection issue");
                 const data = await response.json();
                 const channels = JSON.parse(data.contents);
 
-                if (!Array.isArray(channels) || channels.length === 0) {
-                    throw new Error("No streams returned");
-                }
+                if (!Array.isArray(channels) || channels.length === 0) throw new Error("No streams");
 
                 container.innerHTML = "";
-
-                // عرض أول 30 قناة رياضية لسرعة التحميل
                 let count = 0;
+
                 channels.forEach((ch) => {
-                    const chName = ch.name || "قناة بدون اسم";
+                    const chName = ch.name || "قناة";
                     const streamId = ch.stream_id;
 
-                    // تصفية القنوات لتركيز القنوات الرياضية و beIN
-                    if (/bein|sport|ssc|alkass/i.test(chName) && count < 30) {
+                    // جلب القنوات الرياضية فقط لتنظيم القائمة
+                    if (/bein|sport|ssc|alkass/i.test(chName) && count < 25) {
                         const streamUrl = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
                         
                         const btn = document.createElement('button');
                         btn.className = 'channel-btn';
                         btn.innerText = chName;
-                        btn.onclick = () => loadStream(streamUrl, btn);
+                        btn.onclick = () => playChannel(streamUrl, btn);
                         container.appendChild(btn);
                         count++;
                     }
                 });
 
                 if (container.children.length > 0) {
-                    container.children[0].click(); // تشغيل القناة الأولى تلقائياً
+                    container.children[0].click();
                 } else {
-                    container.innerHTML = `<div style="color:var(--neon-pink);">لم يتم العثور على قنوات رياضية.</div>`;
+                    container.innerHTML = `<div style="color:var(--neon-pink);">لم يتم العثور على قنوات.</div>`;
                 }
 
             } catch (err) {
-                console.error("Error fetching Xtream channels:", err);
-                container.innerHTML = `<div style="color:var(--neon-pink);">⚠️ تعذر جلب قائمة القنوات تلقائياً. تأكد من بيانات السيرفر.</div>`;
+                container.innerHTML = `<div style="color:var(--neon-pink);">⚠️ تعذر جلب قنوات السيرفر.</div>`;
             }
         }
 
-        function loadStream(streamUrl, btn) {
+        function playChannel(url, btn) {
             document.querySelectorAll('#channels-list .channel-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
 
-            const video = document.getElementById('video-player');
-
-            if (Hls.isSupported()) {
-                if (hlsPlayer) hlsPlayer.destroy();
-                hlsPlayer = new Hls();
-                hlsPlayer.loadSource(streamUrl);
-                hlsPlayer.attachMedia(video);
-                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Autoplay check:", e));
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = streamUrl;
-                video.play().catch(e => console.log("Autoplay check:", e));
+            // تدمير المشغل القديم لو موجود عشان ميعملش تداخل
+            if (playerInstance) {
+                playerInstance.destroy();
             }
-        }
 
-        function toggleLanguage() {
-            currentLang = currentLang === "ar" ? "en" : "ar";
-            document.getElementById('lang-toggle').innerText = currentLang === "ar" ? "العربية" : "English";
-            document.dir = currentLang === "ar" ? "rtl" : "ltr";
-            fetchMatchesForDate(currentDate);
+            // تشغيل البث المباشر داخل المشغل المدمج بالموقع
+            playerInstance = new Clappr.Player({
+                source: url,
+                parentId: "#player-element",
+                autoPlay: true,
+                height: "100%",
+                width: "100%",
+                plugins: [],
+            });
         }
 
         function loadToday() {
@@ -396,47 +377,23 @@
 
         async function fetchMatchesForDate(targetDateStr) {
             const container = document.getElementById('main-content');
-            const cacheKey = `ft_matches_${targetDateStr}`;
-            const cacheTimeKey = `ft_time_${targetDateStr}`;
-            
-            const cachedData = localStorage.getItem(cacheKey);
-            const cachedTime = localStorage.getItem(cacheTimeKey);
-            const now = new Date().getTime();
-
-            if (cachedData && cachedTime && (now - cachedTime < 3600000)) {
-                renderMatchGroups(JSON.parse(cachedData), container);
-                return;
-            }
-
             container.innerHTML = `<div class="msg-box" style="color: var(--neon-cyan);">⚡ جاري تحميل المباريات...</div>`;
 
             try {
                 const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${targetDateStr}`, {
                     method: "GET",
-                    headers: {
-                        "x-apisports-key": API_KEY,
-                        "x-rapidapi-key": API_KEY
-                    }
+                    headers: { "x-apisports-key": API_KEY }
                 });
 
-                if (!response.ok) throw new Error(`Server status: ${response.status}`);
                 const result = await response.json();
-
                 if (!result.response || result.response.length === 0) {
-                    container.innerHTML = `<div class="msg-box">🚫 لا توجد مباريات مسجلة بتاريخ (${targetDateStr}).</div>`;
+                    container.innerHTML = `<div class="msg-box">🚫 لا توجد مباريات بتاريخ (${targetDateStr}).</div>`;
                     return;
                 }
-
-                localStorage.setItem(cacheKey, JSON.stringify(result.response));
-                localStorage.setItem(cacheTimeKey, now);
 
                 renderMatchGroups(result.response, container);
             } catch (error) {
-                if (cachedData) {
-                    renderMatchGroups(JSON.parse(cachedData), container);
-                    return;
-                }
-                container.innerHTML = `<div class="err-box">⚠️ انتهت الكوتا اليومية أو حدث خطأ في الاتصال.</div>`;
+                container.innerHTML = `<div class="err-box">⚠️ خطأ في تحميل المباريات.</div>`;
             }
         }
 
@@ -461,9 +418,7 @@
                 `;
 
                 data.matches.forEach(m => {
-                    const statusShort = m.fixture.status.short;
-                    let statusText = m.fixture.status.elapsed ? `${m.fixture.status.elapsed}'` : statusShort;
-                    let isLive = ["1H", "HT", "2H", "ET", "P"].includes(statusShort);
+                    let isLive = ["1H", "HT", "2H", "ET", "P"].includes(m.fixture.status.short);
                     let time = new Date(m.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     html += `
@@ -474,7 +429,7 @@
                             </div>
                             <div class="score-info">
                                 <div class="score">${m.goals.home ?? '-'} : ${m.goals.away ?? '-'}</div>
-                                <div class="status ${isLive ? 'live' : ''}">${isLive ? '🔴 بث مباشر ' + statusText : time}</div>
+                                <div class="status ${isLive ? 'live' : ''}">${isLive ? '🔴 بث مباشر' : time}</div>
                             </div>
                             <div class="team away">
                                 <img src="${m.teams.away.logo}" alt="">
