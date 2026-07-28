@@ -44,29 +44,57 @@
         .brand {
             display: flex; align-items: center; gap: 12px;
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.6rem; font-weight: 900;
+            font-size: 1.5rem; font-weight: 900;
             color: var(--neon-cyan);
             text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
             text-decoration: none;
         }
 
-        .nav-links { display: flex; gap: 18px; align-items: center; }
+        .nav-links { display: flex; gap: 12px; align-items: center; }
 
-        .nav-item.live-tab.active {
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-sub);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn:hover { color: var(--neon-cyan); border-color: var(--neon-cyan); }
+
+        .nav-btn.active {
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+
+        /* زرار البث المباشر المضيء */
+        .nav-btn.live-btn.active {
+            background: rgba(255, 0, 127, 0.15);
             color: var(--neon-pink);
-            text-shadow: 0 0 10px rgba(255, 0, 127, 0.8);
-            font-weight: bold;
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 12px rgba(255, 0, 127, 0.4);
         }
 
         .lang-btn {
             background: transparent; border: 1px solid var(--neon-cyan);
-            color: var(--neon-cyan); padding: 6px 14px;
+            color: var(--neon-cyan); padding: 6px 12px;
             border-radius: 8px; cursor: pointer; font-weight: bold;
         }
 
         .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
+        /* قسم البث المباشر (مخفي افتراضياً) */
         .stream-container {
+            display: none; /* مخفي أول ما الموقع يفتح */
             background: var(--card-bg);
             border: 1px solid var(--border-glow);
             border-radius: 16px; padding: 20px; margin-bottom: 30px;
@@ -172,80 +200,110 @@
     <header>
         <a href="#" class="brand"><i class="fa-solid fa-gamepad"></i> FT MATCHES</a>
         <div class="nav-links">
-            <span class="nav-item live-tab active"><i class="fa-solid fa-tower-broadcast"></i> البث المباشر</span>
+            <button class="nav-btn active" id="btn-tab-matches" onclick="switchView('matches')">
+                <i class="fa-solid fa-calendar-days"></i> المباريات
+            </button>
+            <button class="nav-btn live-btn" id="btn-tab-live" onclick="switchView('live')">
+                <i class="fa-solid fa-tv"></i> البث المباشر
+            </button>
             <button class="lang-btn" id="lang-toggle" onclick="toggleLanguage()">العربية</button>
         </div>
     </header>
 
     <div class="container">
         
-        <!-- مشغل الفيديو والبث المباشر -->
+        <!-- قسم البث المباشر (يظهر فقط عند الضغط على زرار البث المباشر) -->
         <div id="live-stream-section" class="stream-container">
             <h3 style="margin-bottom: 15px; color: var(--neon-pink); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-circle-play"></i> قنوات الرياضة و beIN Sports المباشرة
+                <i class="fa-solid fa-circle-play"></i> قنوات beIN Sports والرياضة المباشرة
             </h3>
             
             <div class="player-wrapper">
-                <video id="video-player" controls autoplay muted playsinline></video>
+                <video id="video-player" controls playsinline></video>
             </div>
 
-            <!-- قائمة القنوات المفلترة تلقائياً -->
             <div class="channel-selector" id="channels-list">
-                <div style="color: var(--neon-cyan); font-size: 0.9rem;">⚡ جاري استخراج قنوات beIN Sports والرياضة من الاشتراك...</div>
+                <div style="color: var(--neon-cyan); font-size: 0.9rem;">⚡ اضغط على القناة للتشغيل...</div>
             </div>
         </div>
 
-        <!-- البحث -->
-        <div class="search-box">
-            <input type="text" id="team-search" placeholder="ابحث عن فريق (مثل: ريال مدريد، الأهلي)..." onkeyup="handleSearch(event)">
-            <i class="fa-solid fa-magnifying-glass"></i>
-        </div>
-
-        <!-- شريط التواريخ -->
-        <div class="date-bar">
-            <button class="date-btn" onclick="changeDate(-1)">⬅️ الأمس</button>
-            <button class="date-btn active" id="btn-today" onclick="loadToday()">🎮 اليوم</button>
-            <button class="date-btn" onclick="changeDate(1)">غداً ➡️</button>
-            <div>
-                <label style="color:var(--text-sub); font-size:0.9rem;">التاريخ: </label>
-                <input type="date" id="custom-date" class="date-picker" onchange="onCustomDateSelect(this.value)">
+        <!-- قسم المباريات الأساسي -->
+        <div id="matches-section">
+            <!-- البحث -->
+            <div class="search-box">
+                <input type="text" id="team-search" placeholder="ابحث عن فريق (مثل: ريال مدريد، الأهلي)..." onkeyup="handleSearch(event)">
+                <i class="fa-solid fa-magnifying-glass"></i>
             </div>
+
+            <!-- شريط التواريخ -->
+            <div class="date-bar">
+                <button class="date-btn" onclick="changeDate(-1)">⬅️ الأمس</button>
+                <button class="date-btn active" id="btn-today" onclick="loadToday()">🎮 اليوم</button>
+                <button class="date-btn" onclick="changeDate(1)">غداً ➡️</button>
+                <div>
+                    <label style="color:var(--text-sub); font-size:0.9rem;">التاريخ: </label>
+                    <input type="date" id="custom-date" class="date-picker" onchange="onCustomDateSelect(this.value)">
+                </div>
+            </div>
+
+            <!-- جدول المباريات -->
+            <div id="main-content"></div>
         </div>
 
-        <!-- جدول المباريات -->
-        <div id="main-content"></div>
     </div>
 
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
-        
-        // رابط ملف IPTV الخاص بحسابك من الصورة
         const M3U_PLAYLIST_URL = "http://ugeen.live:8080/get.php?username=Ugeen_VIPEJJQ1Q&password=LKGkwD&type=m3u_plus&output=m3u8";
 
         let currentLang = "ar";
         let currentDate = new Date().toISOString().split('T')[0];
         let hlsPlayer = null;
+        let isChannelsLoaded = false;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
-            
-            // 1. جلب وقراءة قنوات الرياضة و beIN فقط
-            loadAndFilterSportsChannels();
-
-            // 2. تحميل مباريات اليوم
+            // جلب المباريات فقط عند بداية فتح الموقع
             fetchMatchesForDate(currentDate);
         });
 
-        // دالة جلب وفلترة القنوات الرياضية و beIN فقط
+        // دالة التنقل بين جدول المباريات والبث المباشر
+        function switchView(view) {
+            const liveSection = document.getElementById('live-stream-section');
+            const matchesSection = document.getElementById('matches-section');
+            const btnMatches = document.getElementById('btn-tab-matches');
+            const btnLive = document.getElementById('btn-tab-live');
+            const video = document.getElementById('video-player');
+
+            if (view === 'live') {
+                liveSection.style.display = 'block';
+                matchesSection.style.display = 'none';
+                btnLive.classList.add('active');
+                btnMatches.classList.remove('active');
+
+                // جلب القنوات أول مرة فقط عند فتح التبويب
+                if (!isChannelsLoaded) {
+                    loadAndFilterSportsChannels();
+                    isChannelsLoaded = true;
+                }
+            } else {
+                liveSection.style.display = 'none';
+                matchesSection.style.display = 'block';
+                btnMatches.classList.add('active');
+                btnLive.classList.remove('active');
+
+                // إيقاف الفيديو مؤقتاً عند الخروج من صفحة البث
+                if (video) video.pause();
+            }
+        }
+
         async function loadAndFilterSportsChannels() {
             const container = document.getElementById('channels-list');
-            
             try {
                 const response = await fetch(M3U_PLAYLIST_URL);
-                if (!response.ok) throw new Error("تعذر جلب قائمة القنوات");
+                if (!response.ok) throw new Error("CORS or Connection Error");
                 const textData = await response.text();
 
-                // تحليل وتصنيف ملف M3U
                 const lines = textData.split('\n');
                 const sportsChannels = [];
 
@@ -253,25 +311,16 @@
                     if (lines[i].startsWith('#EXTINF:')) {
                         const infoLine = lines[i];
                         const streamUrl = lines[i + 1] ? lines[i + 1].trim() : '';
-
-                        // استخراج اسم القناة
                         const channelName = infoLine.split(',')[1] || "قناة رياضية";
 
-                        // شرط الفلترة: تحتوي على bein أو sport
-                        const isSports = /bein|sport/i.test(channelName);
-
-                        if (isSports && streamUrl.startsWith('http')) {
+                        if (/bein|sport/i.test(channelName) && streamUrl.startsWith('http')) {
                             sportsChannels.push({ name: channelName.trim(), url: streamUrl });
                         }
                     }
                 }
 
-                if (sportsChannels.length === 0) {
-                    container.innerHTML = `<span style="color:var(--text-sub)">لم يتم العثور على قنوات beIN/Sport أو يوجد منع CORS من السيرفر.</span>`;
-                    return;
-                }
+                if (sportsChannels.length === 0) throw new Error("No channels found");
 
-                // عرض القنوات المفلترة في الأزرار
                 container.innerHTML = "";
                 sportsChannels.forEach((ch, index) => {
                     const btn = document.createElement('button');
@@ -281,19 +330,15 @@
                     container.appendChild(btn);
                 });
 
-                // تشغيل أول قناة رياضية فوراً
-                if (sportsChannels.length > 0) {
-                    loadStream(sportsChannels[0].url, container.children[0]);
-                }
+                if (sportsChannels.length > 0) loadStream(sportsChannels[0].url, container.children[0]);
 
             } catch (error) {
-                // في حالة وجود قيود حماية (CORS) على جلب الملف مباشرة في المتصفح
+                // قنوات احتياطية بسيطة في حالة وجود CORS على GitHub Pages
                 container.innerHTML = `
                     <button class="channel-btn active" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', this)">beIN Sports 1</button>
                     <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/2.m3u8', this)">beIN Sports 2</button>
                     <button class="channel-btn" onclick="loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/3.m3u8', this)">beIN Sports 3</button>
                 `;
-                // تشغيل القناة الأولى كاحتياطي
                 loadStream('http://ugeen.live:8080/live/Ugeen_VIPEJJQ1Q/LKGkwD/1.m3u8', container.children[0]);
             }
         }
@@ -310,11 +355,11 @@
                 hlsPlayer.loadSource(streamUrl);
                 hlsPlayer.attachMedia(video);
                 hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(e => console.log("Autoplay:", e));
+                    video.play().catch(e => console.log("Play interrupted:", e));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = streamUrl;
-                video.play().catch(e => console.log("Autoplay:", e));
+                video.play().catch(e => console.log("Play interrupted:", e));
             }
         }
 
