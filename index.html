@@ -99,7 +99,7 @@
         }
 
         .timer-display {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--neon-cyan);
             margin-top: 10px;
@@ -118,6 +118,7 @@
             transition: 0.3s;
             cursor: pointer;
             border: none;
+            font-size: 1rem;
         }
 
         .channel-selector {
@@ -132,9 +133,9 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
             color: var(--text-main);
-            padding: 10px 18px; border-radius: 8px;
+            padding: 10px 16px; border-radius: 8px;
             cursor: pointer; font-weight: bold; white-space: nowrap; transition: 0.3s;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             display: flex; align-items: center; gap: 8px;
         }
 
@@ -228,12 +229,12 @@
             
             <div class="ad-banner-box" id="ad-box">
                 <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 اختر القناة لبدء التشغيل</h4>
-                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح المشغل فوراً.</p>
+                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح المشغل تلقائياً.</p>
                 <div id="timer-status" class="timer-display" style="display: none;"></div>
             </div>
 
             <div>
-                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة للتشغيل:</p>
+                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة في السيرفر:</p>
                 <div class="channel-selector" id="channels-list"></div>
             </div>
         </div>
@@ -263,21 +264,28 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        const SERVER_HOST = "http://ugeen.live:8080";
-        const USERNAME = "Ugeen_VIPEJJQ1Q";
-        const PASSWORD = "LKGkwD";
-
+        // الأسامي الحقيقية والمضبوطة من سيرفرك بالمللي
         const CHANNELS = [
-            { name: "beIN SPORTS 1 HD", stream_id: "1" },
-            { name: "beIN SPORTS 2 HD", stream_id: "2" },
-            { name: "beIN SPORTS 3 HD", stream_id: "3" },
-            { name: "beIN SPORTS 4 HD", stream_id: "4" },
-            { name: "beIN SPORTS 5 HD", stream_id: "5" },
-            { name: "beIN SPORTS 6 HD", stream_id: "6" },
-            { name: "beIN SPORTS 7 HD", stream_id: "7" },
-            { name: "beIN SPORTS Premium 1", stream_id: "10" },
-            { name: "SSC SPORT 1 HD", stream_id: "12" },
-            { name: "ON Time Sports 1 HD", stream_id: "15" }
+            { name: "beIN SPORTS Full HD 1", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3221" },
+            { name: "beIN SPORTS Full HD 2", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3222" },
+            { name: "beIN SPORTS Full HD 3", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3224" },
+            { name: "beIN SPORTS Full HD 4", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3225" },
+            { name: "beIN SPORTS Full HD 5", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3226" },
+            { name: "beIN SPORTS Full HD 6", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3227" },
+            { name: "beIN SPORTS Full HD 7", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3228" },
+            { name: "beIN SPORTS Full HD 8", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3230" },
+            { name: "beIN SPORTS Full HD 9", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/4033" },
+            
+            { name: "beIN SPORTS 1 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/46" },
+            { name: "beIN SPORTS 2 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/47" },
+            { name: "beIN SPORTS 3 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/49" },
+            { name: "beIN SPORTS 4 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/50" },
+            { name: "beIN SPORTS News", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/2051" },
+            { name: "beIN SPORTS XTRA 1 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/4095" },
+            
+            { name: "beIN Movies 1 HD", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/24" },
+            { name: "beIN Drama", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/15" },
+            { name: "Cartoon Network Arabic", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/2949" }
         ];
 
         let currentDate = new Date().toISOString().split('T')[0];
@@ -313,12 +321,10 @@
             container.innerHTML = "";
 
             CHANNELS.forEach((ch) => {
-                const streamUrl = `${SERVER_HOST}/live/${USERNAME}/${PASSWORD}/${ch.stream_id}.m3u8`;
-
                 const btn = document.createElement('button');
                 btn.className = 'channel-btn';
                 btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${ch.name}`;
-                btn.onclick = () => startRedirectCountdown(streamUrl, ch.name);
+                btn.onclick = () => startRedirectCountdown(ch.stream_url, ch.name);
                 container.appendChild(btn);
             });
         }
@@ -340,25 +346,25 @@
                     clearInterval(countdownInterval);
                     
                     timerBox.innerHTML = `
-                        ✅ جاهز للتشغيل!<br>
-                        <button onclick="playStreamDirectly('${streamUrl}', '${channelName}')" class="vlc-open-btn"> اضغط هنا لفتح القناة في VLC 🚀</button>
+                        ✅ القناة جاهزة للتشغيل!<br>
+                        <button onclick="playStreamDirectly('${streamUrl}', '${channelName}')" class="vlc-open-btn"> اضغط هنا للفتح في VLC فوراً 🚀</button>
                     `;
                     
-                    // تشغيل تلقائي لإنشاء ملف البث المؤقت والفتح
+                    // تشغيل تلقائي وتجهيز الملف
                     playStreamDirectly(streamUrl, channelName);
                 }
             }, 1000);
         }
 
-        // حركة الصاروخ: إنشاء ملف M3U طائر في الميموري وفتحه فوراً مع VLC
         function playStreamDirectly(streamUrl, channelName) {
+            // تجهيز صيغة M3U صحيحة ومقبولة للـ VLC 100%
             const m3uContent = `#EXTM3U\n#EXTINF:-1,${channelName}\n${streamUrl}`;
-            const blob = new Blob([m3uContent], { type: 'audio/x-mpegurl' });
+            const blob = new Blob([m3uContent], { type: 'application/x-mpegurl' });
             const blobUrl = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = `${channelName.replace(/\s+/g, '_')}.m3u`;
+            a.download = `${channelName.replace(/[^a-zA-Z0-9]/g, '_')}.m3u`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
