@@ -6,6 +6,8 @@
     <title>FT MATCHES - Live Football & Streaming</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <!-- مكتبة hls.js لتشغيل البث مباشرة داخل فيديو المتصفح -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root {
             --bg-dark: #07090e;
@@ -89,43 +91,39 @@
             box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
         }
 
+        /* حاوية مشغل الفيديو الداخلي */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* نسبة 16:9 */
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-glow);
+        }
+
+        .video-wrapper video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            outline: none;
+        }
+
         .ad-banner-box {
             background: rgba(0, 0, 0, 0.6);
-            border: 2px dashed var(--neon-pink);
+            border: 1px dashed var(--neon-pink);
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             margin-bottom: 20px;
-        }
-
-        .timer-display {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--neon-cyan);
-            margin-top: 10px;
-        }
-
-        .vlc-open-btn {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 12px 24px;
-            background: var(--neon-pink);
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 8px;
-            box-shadow: 0 0 12px rgba(255, 0, 127, 0.5);
-            transition: 0.3s;
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
         }
 
         .channel-selector {
             display: flex; gap: 10px; margin-top: 15px;
             overflow-x: auto; padding-bottom: 8px;
             flex-wrap: wrap;
-            max-height: 380px;
+            max-height: 250px;
             overflow-y: auto;
         }
 
@@ -139,7 +137,7 @@
             display: flex; align-items: center; gap: 8px;
         }
 
-        .channel-btn:hover {
+        .channel-btn:hover, .channel-btn.active {
             background: var(--neon-pink);
             border-color: var(--neon-pink);
             color: #fff;
@@ -224,17 +222,20 @@
 
     <div class="container">
         
-        <!-- قسم البث المباشر -->
+        <!-- قسم البث المباشر المدمج -->
         <div id="live-stream-section" class="stream-container">
             
-            <div class="ad-banner-box" id="ad-box">
-                <h4 style="color: var(--neon-cyan); margin-bottom: 8px;">📢 اختر القناة لبدء التشغيل</h4>
-                <p style="font-size: 0.85rem; color: var(--text-sub);">عند اختيار القناة سيتم الانتظار 5 ثوانٍ ثم فتح المشغل تلقائياً.</p>
-                <div id="timer-status" class="timer-display" style="display: none;"></div>
+            <div class="video-wrapper">
+                <video id="web-player" controls autoplay playsinline poster="https://via.placeholder.com/800x450/07090e/00f2fe?text=اختر+قناة+للبدء"></video>
+            </div>
+
+            <div class="ad-banner-box">
+                <h4 id="current-channel-title" style="color: var(--neon-cyan);">📺 اختر قناة من القائمة أدناه للتشغيل</h4>
+                <p id="timer-status" style="font-size: 0.85rem; color: var(--text-sub); margin-top: 5px;">سيتم التشغيل داخل مشغل الموقع مباشرة بدون مغادرة الصفحة.</p>
             </div>
 
             <div>
-                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة في السيرفر:</p>
+                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📋 قائمة القنوات:</p>
                 <div class="channel-selector" id="channels-list"></div>
             </div>
         </div>
@@ -264,7 +265,6 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        // الأسامي الحقيقية والمضبوطة من سيرفرك بالمللي
         const CHANNELS = [
             { name: "beIN SPORTS Full HD 1", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3221" },
             { name: "beIN SPORTS Full HD 2", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/3222" },
@@ -281,7 +281,6 @@
             { name: "beIN SPORTS 3 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/49" },
             { name: "beIN SPORTS 4 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/50" },
             { name: "beIN SPORTS News", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/2051" },
-            { name: "beIN SPORTS XTRA 1 ᴴᴰ", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/4095" },
             
             { name: "beIN Movies 1 HD", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/24" },
             { name: "beIN Drama", stream_url: "http://ugeen.live:8080/Ugeen_VIPEJJQ1Q/LKGkwD/15" },
@@ -289,7 +288,7 @@
         ];
 
         let currentDate = new Date().toISOString().split('T')[0];
-        let countdownInterval = null;
+        let hlsPlayer = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
@@ -320,54 +319,64 @@
             const container = document.getElementById('channels-list');
             container.innerHTML = "";
 
-            CHANNELS.forEach((ch) => {
+            CHANNELS.forEach((ch, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'channel-btn';
+                btn.id = `btn-ch-${idx}`;
                 btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${ch.name}`;
-                btn.onclick = () => startRedirectCountdown(ch.stream_url, ch.name);
+                btn.onclick = () => playInWebPlayer(ch.stream_url, ch.name, btn);
                 container.appendChild(btn);
             });
         }
 
-        function startRedirectCountdown(streamUrl, channelName) {
-            const timerBox = document.getElementById('timer-status');
-            timerBox.style.display = 'block';
-            
-            if (countdownInterval) clearInterval(countdownInterval);
+        function playInWebPlayer(url, name, btnElement) {
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
 
-            let timeLeft = 5;
-            timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح المشغل خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
+            const video = document.getElementById('web-player');
+            const titleBox = document.getElementById('current-channel-title');
+            const statusBox = document.getElementById('timer-status');
 
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                if (timeLeft > 0) {
-                    timerBox.innerHTML = `⏳ جاري تجهيز (<strong>${channelName}</strong>)... فتح المشغل خلال <span style="color:var(--neon-pink); font-size:1.4rem;">${timeLeft}</span> ثوانٍ`;
-                } else {
-                    clearInterval(countdownInterval);
-                    
-                    timerBox.innerHTML = `
-                        ✅ القناة جاهزة للتشغيل!<br>
-                        <button onclick="playStreamDirectly('${streamUrl}', '${channelName}')" class="vlc-open-btn"> اضغط هنا للفتح في VLC فوراً 🚀</button>
-                    `;
-                    
-                    // تشغيل تلقائي وتجهيز الملف
-                    playStreamDirectly(streamUrl, channelName);
-                }
-            }, 1000);
-        }
+            titleBox.innerText = `🔴 بث مباشر الان: ${name}`;
+            statusBox.innerText = "⚡ جاري تحميل البث داخل المشغل...";
 
-        function playStreamDirectly(streamUrl, channelName) {
-            // تجهيز صيغة M3U صحيحة ومقبولة للـ VLC 100%
-            const m3uContent = `#EXTM3U\n#EXTINF:-1,${channelName}\n${streamUrl}`;
-            const blob = new Blob([m3uContent], { type: 'application/x-mpegurl' });
-            const blobUrl = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = `${channelName.replace(/[^a-zA-Z0-9]/g, '_')}.m3u`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // تنظيف أي جلسة تشغيل سابقة
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+            }
+
+            // محاولة التشغيل عبر HLS.js أولاً
+            if (Hls.isSupported()) {
+                hlsPlayer = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true
+                });
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play().catch(e => console.log("Auto-play blocked"));
+                    statusBox.innerText = "✅ يعمل مباشرة داخل الصفحة";
+                });
+                hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        // في حالة الـ HTTP TS Direct Stream
+                        video.src = url;
+                        video.play().catch(e => console.log(e));
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // مخصص لأجهزة أبل (Safari / iOS)
+                video.src = url;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                    statusBox.innerText = "✅ يعمل مباشرة داخل الصفحة";
+                });
+            } else {
+                // تشغيل افتراضي مباشر
+                video.src = url;
+                video.play();
+                statusBox.innerText = "✅ جاري التشغيل المباشر";
+            }
         }
 
         function loadToday() {
