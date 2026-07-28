@@ -63,11 +63,6 @@
             text-decoration: none;
         }
 
-        .brand i {
-            font-size: 1.8rem;
-            color: var(--neon-cyan);
-        }
-
         .nav-links {
             display: flex;
             gap: 20px;
@@ -271,7 +266,6 @@
             100% { opacity: 1; }
         }
 
-        /* UI Helpers */
         .msg-box {
             text-align: center;
             padding: 50px 20px;
@@ -294,7 +288,7 @@
 
     <header>
         <a href="#" class="brand">
-            <i class="fa-solid => fa-gamepad"></i> FT MATCHES
+            <i class="fa-solid fa-gamepad"></i> FT MATCHES
         </a>
         <div class="nav-links">
             <span class="nav-item active" onclick="loadToday()">المباريات</span>
@@ -323,13 +317,11 @@
         </div>
 
         <!-- Content Area -->
-        <div id="main-content">
-            <!-- Dynamic Content -->
-        </div>
+        <div id="main-content"></div>
     </div>
 
     <script>
-        const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; // مفتاح الـ API الخارجي
+        const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         let currentLang = "ar";
         let currentDate = new Date().toISOString().split('T')[0];
 
@@ -367,15 +359,30 @@
         }
 
         // ==========================================
-        //  دالة الاتصال بالسيرفر المحسّنة والمعدلة
+        //  نظام الـ Caching الذكي لتوفير طلبات الـ API
         // ==========================================
         async function fetchMatchesForDate(targetDateStr) {
             const container = document.getElementById('main-content');
-            const loadingMsg = currentLang === "en" ? "⚡ Loading live fixtures & channels..." : "⚡ جاري تحميل المباريات والقنوات الناقلة...";
+            
+            // مفتاح التخزين المؤقت الخاص بالتاريخ الحالي
+            const cacheKey = `ft_matches_${targetDateStr}`;
+            const cacheTimeKey = `ft_time_${targetDateStr}`;
+            
+            const cachedData = localStorage.getItem(cacheKey);
+            const cachedTime = localStorage.getItem(cacheTimeKey);
+            const now = new Date().getTime();
+
+            // لو البيانات موجودة وممرش عليها أقل من ساعة (3600000 مللي ثانية)، اعرضها بدون طلبات جديدة!
+            if (cachedData && cachedTime && (now - cachedTime < 3600000)) {
+                console.log("Using Cached Data (0 API requests consumed!)");
+                renderMatchGroups(JSON.parse(cachedData), container);
+                return;
+            }
+
+            const loadingMsg = currentLang === "en" ? "⚡ Loading live fixtures..." : "⚡ جاري تحميل المباريات...";
             container.innerHTML = `<div class="msg-box" style="color: var(--neon-cyan);">${loadingMsg}</div>`;
 
             try {
-                // استخدام الـ API المباشر مع رأس المفتاح الصحيح x-apisports-key
                 const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${targetDateStr}`, {
                     method: "GET",
                     headers: {
@@ -385,7 +392,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
+                    throw new Error(`Server status: ${response.status}`);
                 }
 
                 const result = await response.json();
@@ -395,32 +402,42 @@
                 }
 
                 if (!result.response || result.response.length === 0) {
-                    const emptyMsg = currentLang === "en" ? `🚫 No fixtures registered on (${targetDateStr}).` : `🚫 لا توجد مباريات مسجلة بتاريخ (${targetDateStr}).`;
+                    const emptyMsg = currentLang === "en" ? `🚫 No fixtures on (${targetDateStr}).` : `🚫 لا توجد مباريات مسجلة بتاريخ (${targetDateStr}).`;
                     container.innerHTML = `<div class="msg-box">${emptyMsg}</div>`;
                     return;
                 }
 
+                // حفظ النتائج في الـ LocalStorage مع الوقت الحالي
+                localStorage.setItem(cacheKey, JSON.stringify(result.response));
+                localStorage.setItem(cacheTimeKey, now);
+
                 renderMatchGroups(result.response, container);
             } catch (error) {
                 console.error("Fetch Error:", error);
+                
+                // لو السيرفر جاب إيرور أو كوتا، ولو فيه داتا قديمة مخزنة، اعرضها كخطة بديلة
+                if (cachedData) {
+                    console.warn("API Error, falling back to old cache.");
+                    renderMatchGroups(JSON.parse(cachedData), container);
+                    return;
+                }
+
                 const errText = currentLang === "en" 
-                    ? "⚠️ Unable to connect to sports server. Daily API quota might be reached or key expired." 
-                    : "⚠️ خطأ في الاتصال بالسيرفر الرياضي. قد تكون انتهت الكوتا اليومية للـ API Key.";
+                    ? "⚠️ API limit reached or connection error." 
+                    : "⚠️ انتهت الكوتا اليومية أو حدث خطأ في الاتصال.";
                 container.innerHTML = `<div class="err-box">${errText}</div>`;
             }
         }
 
         function renderMatchGroups(fixtures, container) {
             container.innerHTML = "";
-            
-            // تجميع المباريات حسب البطولة
             const leagues = {};
+            
             fixtures.forEach(item => {
                 const leagueName = item.league.name;
                 if (!leagues[leagueName]) {
                     leagues[leagueName] = {
                         logo: item.league.logo,
-                        flag: item.league.flag,
                         matches: []
                     };
                 }
@@ -439,7 +456,6 @@
                     const statusShort = m.fixture.status.short;
                     let statusText = m.fixture.status.elapsed ? `${m.fixture.status.elapsed}'` : statusShort;
                     let isLive = ["1H", "HT", "2H", "ET", "P"].includes(statusShort);
-                    
                     let time = new Date(m.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     html += `
