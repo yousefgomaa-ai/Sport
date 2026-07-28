@@ -218,10 +218,8 @@
             </div>
 
             <div>
-                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة في السيرفر:</p>
-                <div class="channel-selector" id="channels-list">
-                    <div style="color: var(--text-sub); font-size: 0.9rem;">⚡ جاري الاتصال بالسيرفر وجلب القنوات...</div>
-                </div>
+                <p style="font-size: 0.95rem; color: var(--neon-cyan); margin-bottom: 12px; font-weight: bold;">📺 القنوات المتاحة للتشغيل:</p>
+                <div class="channel-selector" id="channels-list"></div>
             </div>
         </div>
 
@@ -250,18 +248,38 @@
     <script>
         const API_KEY = "38bc32a76f2aa46d5c07aa8856358c0c"; 
         
-        // بيانات السيرفر
+        // بيانات السيرفر الخاصة بك
         const SERVER_HOST = "http://ugeen.live:8080";
         const USERNAME = "Ugeen_VIPEJJQ1Q";
         const PASSWORD = "LKGkwD";
 
+        // قائمة القنوات المباشرة السريعة (يمكنك إضافة أو تعديل أرقام stream_id)
+        const CHANNELS = [
+            { name: "beIN SPORTS 1 HD", stream_id: "1" },
+            { name: "beIN SPORTS 2 HD", stream_id: "2" },
+            { name: "beIN SPORTS 3 HD", stream_id: "3" },
+            { name: "beIN SPORTS 4 HD", stream_id: "4" },
+            { name: "beIN SPORTS 5 HD", stream_id: "5" },
+            { name: "beIN SPORTS 6 HD", stream_id: "6" },
+            { name: "beIN SPORTS 7 HD", stream_id: "7" },
+            { name: "beIN SPORTS 8 HD", stream_id: "8" },
+            { name: "beIN SPORTS 9 HD", stream_id: "9" },
+            { name: "beIN SPORTS Premium 1", stream_id: "10" },
+            { name: "beIN SPORTS Premium 2", stream_id: "11" },
+            { name: "SSC SPORT 1 HD", stream_id: "12" },
+            { name: "SSC SPORT 2 HD", stream_id: "13" },
+            { name: "Abu Dhabi Sports 1", stream_id: "14" },
+            { name: "ON Time Sports 1 HD", stream_id: "15" },
+            { name: "ON Time Sports 2 HD", stream_id: "16" }
+        ];
+
         let currentDate = new Date().toISOString().split('T')[0];
-        let isChannelsLoaded = false;
         let countdownInterval = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('custom-date').value = currentDate;
             fetchMatchesForDate(currentDate);
+            renderChannels();
         });
 
         function switchView(view) {
@@ -275,11 +293,6 @@
                 matchesSection.style.display = 'none';
                 btnLive.classList.add('active');
                 btnMatches.classList.remove('active');
-
-                if (!isChannelsLoaded) {
-                    fetchLiveStreams();
-                    isChannelsLoaded = true;
-                }
             } else {
                 liveSection.style.display = 'none';
                 matchesSection.style.display = 'block';
@@ -288,46 +301,20 @@
             }
         }
 
-        async function fetchLiveStreams() {
+        function renderChannels() {
             const container = document.getElementById('channels-list');
-            
-            // استخدام بروكسي جدار أمان للتغلب على مشكلة HTTP على HTTPS
-            const targetApi = `${SERVER_HOST}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
-            const corsProxy = `https://corsproxy.io/?${encodeURIComponent(targetApi)}`;
+            container.innerHTML = "";
 
-            try {
-                const response = await fetch(corsProxy);
-                if (!response.ok) throw new Error("فشل الاتصال");
+            CHANNELS.forEach((ch) => {
+                // رابط القناة المباشر
+                const streamUrl = `${SERVER_HOST}/live/${USERNAME}/${PASSWORD}/${ch.stream_id}.m3u8`;
 
-                const channels = await response.json();
-
-                if (!Array.isArray(channels) || channels.length === 0) {
-                    throw new Error("القائمة فارغة");
-                }
-
-                container.innerHTML = "";
-
-                channels.forEach((ch) => {
-                    const chName = ch.name || "قناة بدون اسم";
-                    const streamId = ch.stream_id;
-
-                    // رابط البث الخاص بالقناة
-                    const streamUrl = `${SERVER_HOST}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
-
-                    const btn = document.createElement('button');
-                    btn.className = 'channel-btn';
-                    btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${chName}`;
-                    btn.onclick = () => startRedirectCountdown(streamUrl, chName);
-                    container.appendChild(btn);
-                });
-
-            } catch (err) {
-                container.innerHTML = `
-                    <div style="color:var(--neon-pink); font-size:0.9rem;">
-                        ⚠️ تعذر التحميل المباشر الآلي. <br>
-                        <button onclick="fetchLiveStreams()" style="margin-top:10px; padding:6px 12px; background:var(--neon-pink); border:none; color:#fff; border-radius:6px; cursor:pointer;">إعادة المحاولة 🔄</button>
-                    </div>`;
-            }
+                const btn = document.createElement('button');
+                btn.className = 'channel-btn';
+                btn.innerHTML = `<i class="fa-solid fa-play" style="color:var(--neon-pink)"></i> ${ch.name}`;
+                btn.onclick = () => startRedirectCountdown(streamUrl, ch.name);
+                container.appendChild(btn);
+            });
         }
 
         function startRedirectCountdown(streamUrl, channelName) {
@@ -347,7 +334,7 @@
                     clearInterval(countdownInterval);
                     timerBox.innerHTML = `✅ جاري تحويل القناة إلى VLC...`;
                     
-                    // تحويل إلى VLC عبر بروتوكول vlc://
+                    // تحويل مباشر لفتح VLC
                     window.location.href = `vlc://${streamUrl}`;
                 }
             }, 1000);
